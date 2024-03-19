@@ -29,7 +29,7 @@ pub const COIN_VALUE: u64 = 100_000_000;
 /// How many seconds between blocks we expect on average
 pub const TARGET_BLOCK_SPACING: u32 = 600;
 /// How many blocks between diffchanges
-pub const DIFFCHANGE_INTERVAL: u32 = 6000000;
+pub const DIFFCHANGE_INTERVAL: u32 = 2016;
 /// How much time on average should occur between diffchanges
 pub const DIFFCHANGE_TIMESPAN: u32 = 14 * 24 * 3600;
 /// The maximum allowed weight for a block, see BIP 141 (network rule)
@@ -52,6 +52,7 @@ pub const SCRIPT_ADDRESS_PREFIX_TEST: u8 = 196; // 0xc4
 pub const MAX_SCRIPT_ELEMENT_SIZE: usize = 520;
 /// How may blocks between halvings.
 pub const SUBSIDY_HALVING_INTERVAL: u32 = 6_000_000;
+
 /// Maximum allowed value for an integer in Script.
 pub const MAX_SCRIPTNUM_VALUE: u32 = 0x80000000; // 2^31
 
@@ -65,6 +66,7 @@ pub fn max_target(_: Network) -> Uint256 {
 /// if you are doing anything remotely sane with monetary values).
 pub fn max_money(_: Network) -> u64 {
     2_000_000_000 * COIN_VALUE
+
 }
 
 /// Constructs and returns the coinbase (and only) transaction of the Bitcoin genesis block
@@ -77,9 +79,9 @@ fn bitcoin_genesis_tx() -> Transaction {
         output: vec![],
     };
 
- // Inputs
-    let in_script = script::Builder::new().push_int(486604799)
-                                          .push_int_non_minimal(4)
+    // Inputs
+    let in_script = script::Builder::new().push_scriptint(486604799)
+                                          .push_scriptint(4)
                                           .push_slice(b"Segwit added to Bitnet restart 02-26-2023")
                                           .into_script();
     ret.input.push(TxIn {
@@ -90,10 +92,12 @@ fn bitcoin_genesis_tx() -> Transaction {
     });
 
     // Outputs
-    let script_bytes = hex!("04594c39e7eacaa78d2bb0073725c1b75187a1a5b12a8e78d5222c9efacd7e37bb1455a582c2f6b2ac6b60d2899376780367f2a9aad91d42f23cd9f60663575bad");
+    let script_bytes: Result<Vec<u8>, hex::Error> =
+        HexIterator::new("04594c39e7eacaa78d2bb0073725c1b75187a1a5b12a8e78d5222c9efacd7e37bb1455a582c2f6b2ac6b60d2899376780367f2a9aad91d42f23cd9f60663575bad").unwrap()
+            .collect();
     let out_script = script::Builder::new()
-        .push_slice(script_bytes)
-        .push_opcode(OP_CHECKSIG)
+        .push_slice(script_bytes.unwrap().as_slice())
+        .push_opcode(opcodes::all::OP_CHECKSIG)
         .into_script();
     ret.output.push(TxOut {
         value: 88 * COIN_VALUE,
@@ -112,12 +116,12 @@ pub fn genesis_block(network: Network) -> Block {
     match network {
         Network::Bitcoin => {
             Block {
-		 header: block::Header {
-                    version: block::Version::ONE,
+                header: BlockHeader {
+                    version: 1,
                     prev_blockhash: Hash::all_zeros(),
                     merkle_root,
                     time: 1677414786,
-                    bits: CompactTarget::from_consensus(0x1e0ffff0),
+                    bits: 0x1e0ffff0,
                     nonce: 1196422
                 },
                 txdata,
