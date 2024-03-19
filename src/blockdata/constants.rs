@@ -29,7 +29,7 @@ pub const COIN_VALUE: u64 = 100_000_000;
 /// How many seconds between blocks we expect on average
 pub const TARGET_BLOCK_SPACING: u32 = 600;
 /// How many blocks between diffchanges
-pub const DIFFCHANGE_INTERVAL: u32 = 2016;
+pub const DIFFCHANGE_INTERVAL: u32 = 6000000;
 /// How much time on average should occur between diffchanges
 pub const DIFFCHANGE_TIMESPAN: u32 = 14 * 24 * 3600;
 /// The maximum allowed weight for a block, see BIP 141 (network rule)
@@ -41,9 +41,9 @@ pub const WITNESS_SCALE_FACTOR: usize = 4;
 /// The maximum allowed number of signature check operations in a block
 pub const MAX_BLOCK_SIGOPS_COST: i64 = 80_000;
 /// Mainnet (bitcoin) pubkey address prefix.
-pub const PUBKEY_ADDRESS_PREFIX_MAIN: u8 = 0; // 0x00
+pub const PUBKEY_ADDRESS_PREFIX_MAIN: u8 = 25; // 0x00
 /// Mainnet (bitcoin) script address prefix.
-pub const SCRIPT_ADDRESS_PREFIX_MAIN: u8 = 5; // 0x05
+pub const SCRIPT_ADDRESS_PREFIX_MAIN: u8 = 22; // 0x05
 /// Test (tesnet, signet, regtest) pubkey address prefix.
 pub const PUBKEY_ADDRESS_PREFIX_TEST: u8 = 111; // 0x6f
 /// Test (tesnet, signet, regtest) script address prefix.
@@ -51,7 +51,7 @@ pub const SCRIPT_ADDRESS_PREFIX_TEST: u8 = 196; // 0xc4
 /// The maximum allowed script size.
 pub const MAX_SCRIPT_ELEMENT_SIZE: usize = 520;
 /// How may blocks between halvings.
-pub const SUBSIDY_HALVING_INTERVAL: u32 = 210_000;
+pub const SUBSIDY_HALVING_INTERVAL: u32 = 6_000_000;
 /// Maximum allowed value for an integer in Script.
 pub const MAX_SCRIPTNUM_VALUE: u32 = 0x80000000; // 2^31
 
@@ -64,7 +64,7 @@ pub fn max_target(_: Network) -> Uint256 {
 /// since keeping everything below this value should prevent overflows
 /// if you are doing anything remotely sane with monetary values).
 pub fn max_money(_: Network) -> u64 {
-    21_000_000 * COIN_VALUE
+    2_000_000_000 * COIN_VALUE
 }
 
 /// Constructs and returns the coinbase (and only) transaction of the Bitcoin genesis block
@@ -77,10 +77,10 @@ fn bitcoin_genesis_tx() -> Transaction {
         output: vec![],
     };
 
-    // Inputs
-    let in_script = script::Builder::new().push_scriptint(486604799)
-                                          .push_scriptint(4)
-                                          .push_slice(b"The Times 03/Jan/2009 Chancellor on brink of second bailout for banks")
+ // Inputs
+    let in_script = script::Builder::new().push_int(486604799)
+                                          .push_int_non_minimal(4)
+                                          .push_slice(b"Segwit added to Bitnet restart 02-26-2023")
                                           .into_script();
     ret.input.push(TxIn {
         previous_output: OutPoint::null(),
@@ -90,15 +90,13 @@ fn bitcoin_genesis_tx() -> Transaction {
     });
 
     // Outputs
-    let script_bytes: Result<Vec<u8>, hex::Error> =
-        HexIterator::new("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f").unwrap()
-            .collect();
+    let script_bytes = hex!("04594c39e7eacaa78d2bb0073725c1b75187a1a5b12a8e78d5222c9efacd7e37bb1455a582c2f6b2ac6b60d2899376780367f2a9aad91d42f23cd9f60663575bad");
     let out_script = script::Builder::new()
-        .push_slice(script_bytes.unwrap().as_slice())
-        .push_opcode(opcodes::all::OP_CHECKSIG)
+        .push_slice(script_bytes)
+        .push_opcode(OP_CHECKSIG)
         .into_script();
     ret.output.push(TxOut {
-        value: 50 * COIN_VALUE,
+        value: 88 * COIN_VALUE,
         script_pubkey: out_script
     });
 
@@ -114,13 +112,13 @@ pub fn genesis_block(network: Network) -> Block {
     match network {
         Network::Bitcoin => {
             Block {
-                header: BlockHeader {
-                    version: 1,
+		 header: block::Header {
+                    version: block::Version::ONE,
                     prev_blockhash: Hash::all_zeros(),
                     merkle_root,
-                    time: 1231006505,
-                    bits: 0x1d00ffff,
-                    nonce: 2083236893
+                    time: 1677414786,
+                    bits: CompactTarget::from_consensus(0x1e0ffff0),
+                    nonce: 1196422
                 },
                 txdata,
             }
